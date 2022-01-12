@@ -10,8 +10,9 @@ class VKDOWLOADER:
     def __init__(self, token: str):
         self.token = token
         self.photo_list = []
+        self.dicts = []
 
-    def get_photo_list(self):
+    def get_photo_profile_list(self):
         URL = "https://api.vk.com/method/photos.get"
         params = {
             "count": 100,
@@ -22,18 +23,40 @@ class VKDOWLOADER:
             "v": '5.131'
         }
         res = requests.get(URL, params=params)
-        return res.json()
+        return res
 
-    # date = datetime.utcfromtimestamp(item.get('date')).strftime('%Y-%m-%d')
+    def get_photo_wall_list(self):
+        URL = "https://api.vk.com/method/photos.get"
+        params = {
+            "count": 100,
+            "access_token": vk_TOKEN,
+            "album_id": 'wall',
+            "extended": '1',
+            "photo_sizes": '1',
+            "v": '5.131'
+        }
+        res = requests.get(URL, params=params)
+        return res
 
     def get_photo(self):
-        dict = self.get_photo_list()
-        items = (dict.get('response')).get('items')
-        for item in items:
-            photo_dict = {}
-            photo_dict['filename'] = f"{(item.get('likes')).get('count')}.jpeg"
-            photo_dict['photo'] = ((item.get('sizes'))[-1]).get('url')
-            self.photo_list.append(photo_dict)
+        self.dicts.append(self.get_photo_profile_list().json())
+        self.dicts.append(self.get_photo_wall_list().json())
+        for dict in self.dicts:
+            items = (dict.get('response')).get('items')
+            for item in items:
+                photo_dict = {}
+                name = str((item.get('likes')).get('count'))
+                if name in [file.get('filename') for file in self.photo_list]:
+                    date = str(datetime.utcfromtimestamp(item.get('date')).strftime('%Y-%m-%d'))
+                    name = (item.get('likes')).get('count')
+                    photo_dict['filename'] = f"{name} {date}"
+                else:
+                    photo_dict['filename'] = f"{name}"
+                photo_dict['photo'] = ((item.get('sizes'))[-1]).get('url')
+                photo_dict['size_h'] = ((item.get('sizes'))[-1]).get('height')
+                photo_dict['size_w'] = ((item.get('sizes'))[-1]).get('width')
+                self.photo_list.append(photo_dict)
+        pprint(self.photo_list)
         return self.photo_list
 
 
@@ -79,13 +102,13 @@ if __name__ == '__main__':
     vk_TOKEN = input("Введите ваш VK токен:")
     ya_TOKEN = input("Введите ваш Яндекс токен:")
     folder_name = input("Введите название папки куда поместить фотографии:")
-    # vk_TOKEN = "958eb5d439726565e9333aa30e50e0f937ee432e927f0dbd541c541887d919a7c56f95c04217915c32008"  # Введите VK токкен
-    # ya_TOKEN = "AQAAAAABgt4oAADLW91g_cXfDEKziGeFEglOoxo"  # Введите YA токкен
-    # folder_name = "netology"  # Введите название папки
+    # vk_TOKEN = ""  # Введите VK токкен
+    # ya_TOKEN = ""  # Введите YA токкен
+    # folder_name_to_create = "netology"  # Введите название папки
     downloader = VKDOWLOADER(vk_TOKEN)
     uploader = YaUploader(ya_TOKEN)
-    uploader.create_folder(folder_name)
     list = downloader.get_photo()
+    uploader.create_folder(folder_name_to_create)
     for photo in list:
-        path_to_file = f"{folder_name}/{photo.get('filename')}"
+        path_to_file = f"{folder_name_to_create}/{photo.get('filename')}"
         uploader.upload_file_to_disk(path_to_file, photo)
