@@ -88,20 +88,25 @@ class YaUploader:
             print(f"Фотография {filename.get('filename')} загруженна.")
 
     def create_folder(self, folder_name):
-
-        url = f"https://cloud-api.yandex.net/v1/disk/resources?path={folder_name}"
+        folder_url = f"https://cloud-api.yandex.net/v1/disk/resources?path={folder_name}&preview_crop=true"
         headers = self.get_headers()
-        response = requests.put(url=url, headers=headers)
+        response = requests.get(url=folder_url, headers=headers)
         response.raise_for_status()
-        if response.status_code == 201:
-            print(f"Папка {folder_name} создана.")
+        if response.status_code == 404:
+            url = f"https://cloud-api.yandex.net/v1/disk/resources?path={folder_name}"
+            response = requests.put(url=url, headers=headers)
+            response.raise_for_status()
+            if response.status_code == 201:
+                print(f"Папка {folder_name} создана.")
+        elif response.status_code == 200:
+            print(f"Папка {folder_name} уже существует")
 
 
 if __name__ == '__main__':
     # Получить путь к загружаемому файлу и токен от пользователя
     vk_TOKEN = input("Введите ваш VK токен:")
     ya_TOKEN = input("Введите ваш Яндекс токен:")
-    folder_name = input("Введите название папки куда поместить фотографии:")
+    folder_name_to_create = input("Введите название папки куда поместить фотографии:")
     # vk_TOKEN = ""  # Введите VK токкен
     # ya_TOKEN = ""  # Введите YA токкен
     # folder_name_to_create = "netology"  # Введите название папки
