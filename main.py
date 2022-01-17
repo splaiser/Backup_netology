@@ -3,7 +3,8 @@ from requests import request
 from pprint import pprint
 import json
 from datetime import datetime
-
+from tqdm import tqdm
+import time
 
 class VKDOWLOADER:
 
@@ -56,7 +57,8 @@ class VKDOWLOADER:
                 photo_dict['size_h'] = ((item.get('sizes'))[-1]).get('height')
                 photo_dict['size_w'] = ((item.get('sizes'))[-1]).get('width')
                 self.photo_list.append(photo_dict)
-        pprint(self.photo_list)
+        with open("photos.json", "w") as f:
+            json.dump(self.photo_list, f)
         return self.photo_list
 
 
@@ -84,22 +86,22 @@ class YaUploader:
         photo_href = requests.get(filename.get('photo'))
         response = requests.put(href, data=photo_href)
         response.raise_for_status()
-        if response.status_code == 201:
-            print(f"Фотография {filename.get('filename')} загруженна.")
+        # if response.status_code == 201:
+        #     print(f"Фотография {filename.get('filename')} загруженна.")
 
     def create_folder(self, folder_name):
         folder_url = f"https://cloud-api.yandex.net/v1/disk/resources?path={folder_name}&preview_crop=true"
         headers = self.get_headers()
         response = requests.get(url=folder_url, headers=headers)
-        response.raise_for_status()
+        # response.raise_for_status()
         if response.status_code == 404:
             url = f"https://cloud-api.yandex.net/v1/disk/resources?path={folder_name}"
             response = requests.put(url=url, headers=headers)
             response.raise_for_status()
             if response.status_code == 201:
-                print(f"Папка {folder_name} создана.")
+                print(f"Папка {folder_name} создана, загружаю в неё ваши файлы.")
         elif response.status_code == 200:
-            print(f"Папка {folder_name} уже существует")
+            print(f"Папка {folder_name} уже существует, загружаю файлы в данную папку.")
 
 
 if __name__ == '__main__':
@@ -114,6 +116,6 @@ if __name__ == '__main__':
     uploader = YaUploader(ya_TOKEN)
     list = downloader.get_photo()
     uploader.create_folder(folder_name_to_create)
-    for photo in list:
+    for photo in tqdm(list):
         path_to_file = f"{folder_name_to_create}/{photo.get('filename')}"
         uploader.upload_file_to_disk(path_to_file, photo)
